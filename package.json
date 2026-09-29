@@ -4,9 +4,6 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.8.1",
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
-  },
   "scripts": {
     "dev": "vite",
     "dev:api": "tsx api/server/index.ts",
