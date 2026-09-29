@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 import dns from "dns";
 
+// Failed or stale MongoDB connections should fall back to the in-memory store
+// instead of leaving API requests buffered until they time out.
+mongoose.set("bufferCommands", false);
+
 if (!process.env.VERCEL) {
   try {
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -12,7 +16,8 @@ if (!process.env.VERCEL) {
 let isConnected = false;
 
 export async function connectToDatabase(): Promise<boolean> {
-  if (isConnected) return true;
+  if (isConnected && mongoose.connection.readyState === 1) return true;
+  isConnected = false;
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) {
     console.log("[MongoDB] No MONGODB_URI environment variable provided. Operating with in-memory store.");
@@ -25,9 +30,9 @@ export async function connectToDatabase(): Promise<boolean> {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
     });
-    isConnected = true;
+    isConnected = mongoose.connection.readyState === 1;
     console.log("[MongoDB] Connected to MongoDB Atlas successfully.");
-    return true;
+    return isConnected;
   } catch (error) {
     console.error("[MongoDB] Connection error:", error);
     return false;
